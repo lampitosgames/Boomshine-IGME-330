@@ -32,3 +32,20 @@ class Circle extends Particle {
         app.utils.fillCircle(this.x, this.y, this.radius, this.color);
     }
 }
+
+class Cursor extends Particle {
+    constructor(radius, color, lineWidth) {
+        super(app.mouse[0], app.mouse[1], radius);
+        this.color = color;
+        this.lineWidth = lineWidth;
+        this.velx = 0;
+        this.vely = 0;
+    }
+    update(dt) {
+        this.x = app.mouse[0];
+        this.y = app.mouse[1];
+    }
+    draw() {
+        app.utils.strokeCircle(this.x, this.y, this.radius, this.color, this.lineWidth)
+    }
+}

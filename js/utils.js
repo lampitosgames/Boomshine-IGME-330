@@ -84,6 +84,16 @@ app.utils = {
         if (item.y - item.radius < 0 && item.vely < 0) { item.vely *= -1; }
     },
 
+    /**
+     * Circle on circle collision
+     * returns bool : are circles colliding
+     */
+    circleCollision: function(c1, c2) {
+        let xDiff = Math.abs(c2.x-c1.x), yDiff = Math.abs(c2.y-c1.y);
+        let dist = Math.sqrt(xDiff*xDiff + yDiff*yDiff);
+        return dist < c1.radius + c2.radius;
+    },
+
     //Drawing
     /**
      * Write text with given parameters.
@@ -112,11 +122,12 @@ app.utils = {
      * Stroke a Circle
      * this sounds a little dirty 0_0
      */
-    strokeCircle: function(x, y, radius, strokeColor) {
+    strokeCircle: function(x, y, radius, strokeColor, lineWidth) {
         let c = app.main.ctx;
         c.save();
         c.beginPath();
         c.strokeStyle = strokeColor;
+        c.lineWidth = lineWidth;
         c.arc(x, y, radius, 0, Math.PI*2);
         c.stroke();
         c.restore();
@@ -142,10 +153,6 @@ app.getViewport = function() {
              vh: ele[pre + 'Height']/100.0 };
 }
 
-/**
- * This gives Array a randomElement() method
- * From: Boomshine-ICE-start
- */
-Array.prototype.randomElement = function(){
-	return this[Math.floor(Math.random() * this.length)];
+app.getMouse = function(e) {
+    return [e.pageX - e.target.offsetLeft, e.pageY - e.target.offsetTop];
 }

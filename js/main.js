@@ -5,6 +5,7 @@ app.main = {
     ctx: undefined,
     lastTime: 0,
     particles: undefined,
+    cursor: undefined,
     animationID: 0,
     debug: true,
     paused: false
@@ -25,6 +26,9 @@ let init = app.main.init = function() {
     window.addEventListener('resize', resize);
     resize();
 
+    //Init the mouse
+    app.mouse = [0, 0];
+    //Init particles
     particles = app.main.particles = [];
     //Create a bunch of new particles
     for (var i = 0; i<10; i++) {
@@ -38,6 +42,7 @@ let init = app.main.init = function() {
         let circleVec = app.utils.randomVec();
         particles[i].setVel(circleVec[0]*speed, circleVec[1]*speed);
     }
+    app.main.cursor = new Cursor(40, "rgba(255, 255, 255, 0.75)", 5);
 
     //Start the update loop.
     update();
@@ -86,11 +91,13 @@ let update = app.main.update = function() {
         drawPauseScreen();
         return;
     }
-
     //Update all particles
     for (var i=0; i<particles.length; i++) {
         particles[i].update(dt);
     }
+    //Update and draw the cursor
+    app.main.cursor.update();
+    app.main.cursor.draw();
 }
 
 let drawPauseScreen = app.main.drawPauseScreen = function() {
