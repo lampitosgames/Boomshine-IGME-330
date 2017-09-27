@@ -23,7 +23,8 @@ let init = app.main.init = function() {
     resize();
 
     app.main.particles.push(new Circle(50, 50, 20));
-    app.main.particles[0].vel = {x: 10, y: 10};
+    app.main.particles[0].velx = 10;
+    app.main.particles[0].vely = 10;
 
     //Start the update loop.
     update();
