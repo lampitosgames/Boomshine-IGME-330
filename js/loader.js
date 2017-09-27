@@ -22,14 +22,3 @@ window.onfocus = function() {
 document.onmousemove = function(e) {
     app.mouse = app.getMouse(e);
 }
-
-document.onmousedown = function() {
-    let pList = app.main.particles;
-    for (var i=0; i<pList.length; i++) {
-        let p = pList[i];
-        if (app.utils.circleCollision(app.main.cursor, p)) {
-            p.setVel(0, 0);
-            p.color = "red";
-        }
-    }
-}

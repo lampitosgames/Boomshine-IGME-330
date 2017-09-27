@@ -5,16 +5,41 @@ app.main = {
     ctx: undefined,
     lastTime: 0,
     particles: undefined,
+    explosions: undefined,
     cursor: undefined,
+    gameState: undefined,
+    numCircles: undefined,
+    roundScore: 0,
+    totalScore: 0,
     animationID: 0,
     debug: true,
     paused: false
+};
+app.GAME_STATE = {
+    BEGIN: 0,
+    DEFAULT: 1,
+    EXPLODING: 2,
+    ROUND_OVER: 3,
+    REPEAT_LEVEL: 4,
+    END: 5
+};
+app.CIRCLE = {
+    NUM_CIRCLES_START: 0,
+    INCREMENT: 20,
+    START_RADIUS: 10,
+    MAX_RADIUS: 60,
+    MIN_RADIUS: 2,
+    MAX_LIFETIME: 2.5,
+    //Pixels Per Second
+    MAX_SPEED: 500,
+    EXPLOSION_SPEED: 90,
+    IMPLOSION_SPEED: 120
 };
 
 //Script local variables (I mean, they're technically global, but globals are all stored in the app object)
 let canvas, ctx, viewport;
 let dt;
-let particles;
+let particles, explosions;
 
 /**
  * Initialization
@@ -22,30 +47,59 @@ let particles;
 let init = app.main.init = function() {
     //Store the canvas element
     app.main.canvas = canvas = document.getElementById("canvas");
+    //Set initial game state
+    app.main.gameState = app.GAME_STATE.BEGIN;
+    app.main.numCircles = app.CIRCLE.NUM_CIRCLES_START;
+
     //Bind resize, then call it as part of initialization
     window.addEventListener('resize', resize);
     resize();
 
     //Init the mouse
     app.mouse = [0, 0];
-    //Init particles
-    particles = app.main.particles = [];
-    //Create a bunch of new particles
-    for (var i = 0; i<10; i++) {
-        let radius = 20;
-        let speed = 300;
-        particles.push(new Circle(app.utils.randomInt(radius*2, viewport.width-radius*2),
-                                  app.utils.randomInt(radius*2, viewport.height-radius*2),
-                                  radius,
-                                  app.utils.randomRGBOpacity(0.75)
-                                 ));
-        let circleVec = app.utils.randomVec();
-        particles[i].setVel(circleVec[0]*speed, circleVec[1]*speed);
-    }
+
+    //Create a new cursor
     app.main.cursor = new Cursor(40, "rgba(255, 255, 255, 0.75)", 5);
 
+    //Bind the mousedown event to the canvas
+    canvas.onmousedown = function() {
+        //If the game was paused, unpause but do nothing
+        if (app.main.paused) {
+            app.main.paused = false;
+            app.main.update();
+            return;
+        }
+        //If the game is already in the exploding state, return early
+        if (app.main.gameState == app.GAME_STATE.EXPLODING) return;
+
+        //If the round is over, start the next round
+        if (app.main.gameState == app.GAME_STATE.ROUND_OVER) {
+            app.main.reset();
+            return;
+        }
+        //Default to calling the cursor's click event
+        app.main.cursor.click();
+    }
+
+    //Reset the level
+    reset();
     //Start the update loop.
     update();
+}
+
+/**
+ * Resets the game and moves to the next level
+ */
+let reset = app.main.reset = function() {
+    //Create circles
+    app.main.numCircles += app.CIRCLE.INCREMENT;
+    app.main.gameState = app.main.gameState == app.GAME_STATE.BEGIN ? app.GAME_STATE.BEGIN : app.GAME_STATE.DEFAULT;
+    //Reset the round Score
+    app.main.roundScore = 0;
+    //Init particles
+    particles = app.main.particles = [];
+    explosions = app.main.explosions = [];
+    makeCircles(app.main.numCircles);
 }
 
 /**
@@ -76,9 +130,11 @@ let update = app.main.update = function() {
     ctx.fillRect(0, 0, viewport.width, viewport.height);
 
     //Draw all particles
-    for (var i=0; i<app.main.particles.length; i++) {
-        particles[i].draw();
-    }
+    for (var i=0; i<app.main.particles.length; i++) { particles[i].draw(); }
+    //Draw all explosions
+    for (var i=0; i<explosions.length; i++) { explosions[i].draw(dt); }
+
+    drawHUD();
 
     //If in debug mode, draw debugger things
     if (app.main.debug) {
@@ -92,12 +148,41 @@ let update = app.main.update = function() {
         return;
     }
     //Update all particles
-    for (var i=0; i<particles.length; i++) {
-        particles[i].update(dt);
+    for (var i=0; i<particles.length; i++) { particles[i].update(dt); }
+    //Update all explosions
+    for (var i=0; i<explosions.length; i++) { explosions[i].update(dt); }
+
+    if (app.main.gameState == app.GAME_STATE.EXPLODING && explosions.length == 0) {
+        app.main.gameState = app.GAME_STATE.ROUND_OVER;
+    } else if (app.main.gameState != app.GAME_STATE.ROUND_OVER && app.main.gameState != app.GAME_STATE.EXPLODING) {
+        app.main.cursor.update();
+        app.main.cursor.draw();
     }
-    //Update and draw the cursor
-    app.main.cursor.update();
-    app.main.cursor.draw();
+}
+
+let drawHUD = app.main.drawHUD = function() {
+    ctx.save();
+    //Draw score
+    app.utils.fillText("This Round: " + app.main.roundScore + " of " + app.main.numCircles, 20, 20, "14pt courier", "#ddd");
+    app.utils.fillText("Total Score: " + app.main.totalScore, viewport.width - 200, 20, "14pt courier", "#ddd");
+
+    //Draw tutorial text
+    if (app.main.gameState == app.GAME_STATE.BEGIN) {
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        app.utils.fillText("To begin, click a circle", viewport.width/2, viewport.height/2, "30pt courier", "#fff");
+    }
+
+    //Draw round over text
+    if (app.main.gameState == app.GAME_STATE.ROUND_OVER) {
+        ctx.save();
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        app.utils.fillText("Round Over", viewport.width/2, viewport.height/2 - 40, "30pt courier", "red");
+        app.utils.fillText("Click to continue", viewport.width/2, viewport.height/2, "30pt courier", "red");
+        app.utils.fillText("Next round there are " + (app.main.numCircles + app.CIRCLE.INCREMENT) + " circles", viewport.width/2, viewport.height/2 + 40, "30pt courier", "white");
+    }
+    ctx.restore();
 }
 
 let drawPauseScreen = app.main.drawPauseScreen = function() {
@@ -108,6 +193,23 @@ let drawPauseScreen = app.main.drawPauseScreen = function() {
     ctx.textBaseline = "middle";
     app.utils.fillText("... PAUSED ...", viewport.width/2, viewport.height/2, "40pt courier", "#fff");
     ctx.restore();
+}
+
+/**
+ * Create a number of circle objects with random colors, randomly placed, and going in random directions
+ */
+let makeCircles = app.main.makeCircles = function(count) {
+    for (var i = 0; i<count; i++) {
+        let radius = app.CIRCLE.START_RADIUS;
+        let speed = app.CIRCLE.MAX_SPEED;
+        particles.push(new Circle(app.utils.randomInt(radius*2, viewport.width-radius*2),
+                                  app.utils.randomInt(radius*2, viewport.height-radius*2),
+                                  radius,
+                                  app.utils.randomRGBOpacity(0.75)
+                                 ));
+        let circleVec = app.utils.randomVec();
+        particles[i].setVel(circleVec[0]*speed, circleVec[1]*speed);
+    }
 }
 
 /**
