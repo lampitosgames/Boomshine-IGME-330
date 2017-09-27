@@ -47,7 +47,23 @@ app.utils = {
 	//convert radians to degrees
 	inDegr: function(rads) {
 		return rads * 180 / Math.PI;
-	}
+	},
+
+    //Collision Detection
+    checkBoundingCollision: function(item) {
+        let bounds = app.viewport;
+        if (item.pos.x + item.radius > bounds.width ||
+            item.pos.x - item.radius < 0) {
+            //reverse hor direction
+            item.vel.x *= -1;
+        }
+        if (item.pos.y + item.radius > bounds.height ||
+            item.pos.y - item.radius < 0) {
+            //reverse vert direction
+            item.vel.y *= -1;
+        }
+    }
+
 }
 
 /**

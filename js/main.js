@@ -4,6 +4,7 @@ app.main = {
     canvas: undefined,
     ctx: undefined,
     lastTime: 0,
+    particles: [],
     debug: true,
     paused: false
 };
@@ -20,6 +21,9 @@ let init = app.main.init = function() {
     //Bind resize, then call it as part of initialization
     window.addEventListener('resize', resize);
     resize();
+
+    app.main.particles.push(new Circle(50, 50, 20));
+    app.main.particles[0].vel = {x: 10, y: 10};
 
     //Start the update loop.
     update();
@@ -50,6 +54,13 @@ let update = app.main.update = function() {
 
     //Get the delta time
     let dt = calculateDeltaTime();
+
+    ctx.clearRect(0, 0, viewport.width, viewport.height);
+
+    for (var i=0; i<app.main.particles.length; i++) {
+        app.main.particles[i].update();
+        app.main.particles[i].draw();
+    }
 }
 
 /**
