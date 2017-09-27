@@ -11,12 +11,20 @@ app.utils = {
 	},
 	//Map funciton that gets the normalized value of a number in one range, and returns the interpolated value in a second range
 	map: function(value, sourceMin, sourceMax, destMin, destMax) {
-		var n = utils.norm(value, sourceMin, sourceMax);
-		return utils.lerp(n, destMin, destMax);
+		var n = this.norm(value, sourceMin, sourceMax);
+		return this.lerp(n, destMin, destMax);
 	},
 	//Clamp.  Make sure a value stays between two values in a range
 	clamp: function(value, min, max) {
 		return Math.min(Math.max(value, Math.min(min, max)), Math.max(min, max));
+	},
+	//convert degrees to radians
+	inRads: function(degr) {
+		return degr / 180 * Math.PI;
+	},
+	//convert radians to degrees
+	inDegr: function(rads) {
+		return rads * 180 / Math.PI;
 	},
 	//detect if a value is within a range
 	inRange: function(value, min, max) {
@@ -40,41 +48,79 @@ app.utils = {
 	randomInt: function(min, max) {
 		return Math.floor(min + Math.random() * (max - min + 1));
 	},
-	//convert degrees to radians
-	inRads: function(degr) {
-		return degr / 180 * Math.PI;
-	},
-	//convert radians to degrees
-	inDegr: function(rads) {
-		return rads * 180 / Math.PI;
-	},
+    //random unit vector
+    randomVec: function() {
+        let vec = [this.randomRange(-1, 1), this.randomRange(-1, 1)];
+        let len = Math.sqrt(vec[0]*vec[0] + vec[1]*vec[1]);
+        if (len == 0) { vec = [1,0]; len=1; }
+        return [vec[0]/len, vec[1]/len];
+    },
+    //random rgb color
+    randomRGB: function() {
+        return "rgb(" + this.randomInt(0, 255) + "," + this.randomInt(0, 255) + "," + this.randomInt(0, 255) + ")";
+    },
+    //random rgba color
+    randomRGBA: function() {
+        return "rgba(" + this.randomInt(0, 255) + "," + this.randomInt(0, 255) + "," + this.randomInt(0, 255) + "," + this.randomRange(0.0, 1.0) + ")";
+    },
+    //random rgb color with fixed opacity
+    randomRGBOpacity: function(opacity) {
+        return "rgba(" + this.randomInt(0, 255) + "," + this.randomInt(0, 255) + "," + this.randomInt(0, 255) + "," + this.clamp(opacity, 0.0, 1.0) + ")";
+    },
 
     //Collision Detection
+
+    /**
+     * Check for a particle colliding with the edge
+     */
     checkBoundingCollision: function(item) {
+        //Grab the current bounds of the screen
         let bounds = app.viewport;
-        if (item.x + item.radius > bounds.width ||
-            item.x - item.radius < 0) {
-            //reverse hor direction
-            item.velx *= -1;
-        }
-        if (item.y + item.radius > bounds.height ||
-            item.y - item.radius < 0) {
-            //reverse vert direction
-            item.vely *= -1;
-        }
-    }
+        //Detect edge collision horizontally
+        if (item.x + item.radius > bounds.width && item.velx > 0) { item.velx *= -1; }
+        if (item.x - item.radius < 0 && item.velx < 0) { item.velx *= -1; }
+        //Detect edge collision vertically
+        if (item.y + item.radius > bounds.height && item.vely > 0) { item.vely *= -1; }
+        if (item.y - item.radius < 0 && item.vely < 0) { item.vely *= -1; }
+    },
 
-}
-
-/**
- * Check for mobile browsers
- */
-app.mobile = function () {
-    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-        return true;
-    } else {
-        return false;
-    }
+    //Drawing
+    /**
+     * Write text with given parameters.
+     * From: Boomshine-ICE-start
+     */
+    fillText: function(string, x, y, css, color) {
+        let c = app.main.ctx;
+        c.save();
+        // https://developer.mozilla.org/en-US/docs/Web/CSS/font
+        c.font = css;
+        c.fillStyle = color;
+        c.fillText(string, x, y);
+        c.restore();
+    },
+    /**
+     * Fill a circle
+     */
+    fillCircle: function(x, y, radius, fillColor) {
+        let c = app.main.ctx;
+        c.beginPath();
+        c.fillStyle = fillColor;
+        c.arc(x, y, radius, 0, Math.PI*2);
+        c.fill();
+    },
+    /**
+     * Stroke a Circle
+     * this sounds a little dirty 0_0
+     */
+    strokeCircle: function(x, y, radius, strokeColor) {
+        let c = app.main.ctx;
+        c.save();
+        c.beginPath();
+        c.strokeStyle = strokeColor;
+        c.arc(x, y, radius, 0, Math.PI*2);
+        c.stroke();
+        c.restore();
+    },
 }
 
 /**
@@ -94,4 +140,12 @@ app.getViewport = function() {
              vw: ele[pre + 'Width']/100.0,
              //View Height css unit
              vh: ele[pre + 'Height']/100.0 };
+}
+
+/**
+ * This gives Array a randomElement() method
+ * From: Boomshine-ICE-start
+ */
+Array.prototype.randomElement = function(){
+	return this[Math.floor(Math.random() * this.length)];
 }

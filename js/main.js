@@ -4,13 +4,16 @@ app.main = {
     canvas: undefined,
     ctx: undefined,
     lastTime: 0,
-    particles: [],
+    particles: undefined,
+    animationID: 0,
     debug: true,
     paused: false
 };
 
-//Script variables
+//Script local variables (I mean, they're technically global, but globals are all stored in the app object)
 let canvas, ctx, viewport;
+let dt;
+let particles;
 
 /**
  * Initialization
@@ -22,9 +25,19 @@ let init = app.main.init = function() {
     window.addEventListener('resize', resize);
     resize();
 
-    app.main.particles.push(new Circle(50, 50, 20));
-    app.main.particles[0].velx = 10;
-    app.main.particles[0].vely = 10;
+    particles = app.main.particles = [];
+    //Create a bunch of new particles
+    for (var i = 0; i<10; i++) {
+        let radius = 20;
+        let speed = 300;
+        particles.push(new Circle(app.utils.randomInt(radius*2, viewport.width-radius*2),
+                                  app.utils.randomInt(radius*2, viewport.height-radius*2),
+                                  radius,
+                                  app.utils.randomRGBOpacity(0.75)
+                                 ));
+        let circleVec = app.utils.randomVec();
+        particles[i].setVel(circleVec[0]*speed, circleVec[1]*speed);
+    }
 
     //Start the update loop.
     update();
@@ -47,26 +60,52 @@ let resize = app.main.resize = function() {
  * Main update loop of the game
  */
 let update = app.main.update = function() {
-    //Note to grader: I don't need to bind it here because of the way I'm coding.
-    requestAnimationFrame(app.main.update);
-
-    //All code that shouldn't be called if the game is paused should come after this
-    if (app.main.paused) return;
+    //Note to grader: I don't need to bind the update function because of the way I'm coding.
+    app.main.animationID = requestAnimationFrame(app.main.update);
 
     //Get the delta time
-    let dt = calculateDeltaTime();
+    app.dt = dt = calculateDeltaTime();
 
-    ctx.clearRect(0, 0, viewport.width, viewport.height);
+    //Override everything with a full-size background
+    ctx.fillStyle = "#171717";
+    ctx.fillRect(0, 0, viewport.width, viewport.height);
 
+    //Draw all particles
     for (var i=0; i<app.main.particles.length; i++) {
-        app.main.particles[i].update();
-        app.main.particles[i].draw();
+        particles[i].draw();
     }
+
+    //If in debug mode, draw debugger things
+    if (app.main.debug) {
+        //Draw delta time
+        app.utils.fillText("dt: " + dt.toFixed(3), viewport.width - 150, viewport.height - 10, "10pt courier", "white");
+    }
+
+    //UPDATES DON'T HAPPEN IF GAME IS PAUSED
+    if (app.main.paused) {
+        drawPauseScreen();
+        return;
+    }
+
+    //Update all particles
+    for (var i=0; i<particles.length; i++) {
+        particles[i].update(dt);
+    }
+}
+
+let drawPauseScreen = app.main.drawPauseScreen = function() {
+    ctx.save();
+    ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+    ctx.fillRect(0, 0, viewport.width, viewport.height);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    app.utils.fillText("... PAUSED ...", viewport.width/2, viewport.height/2, "40pt courier", "#fff");
+    ctx.restore();
 }
 
 /**
  * Calculates the time between frames
- * NOTE: this is partially from mycourses
+ * NOTE: this is partially from Boomshine-ICE-start
  */
 let calculateDeltaTime = app.main.calculateDeltaTime = function() {
 	let now,fps;

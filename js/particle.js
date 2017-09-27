@@ -1,41 +1,34 @@
 "use strict";
 
 class Particle {
-    constructor(x, y) {
+    constructor(x, y, radius) {
         this.x = x;
         this.y = y;
         this.velx = 0;
         this.vely = 0;
+        this.radius = radius;
     }
-
     setVel(x, y) {
         this.velx = x;
         this.vely = y;
     }
-
-    update() {
-        this.x += this.velx;
-        this.y += this.vely;
+    update(dt) {
+        this.x += this.velx * dt;
+        this.y += this.vely * dt;
     }
 }
 
 class Circle extends Particle {
-    constructor(x, y, radius) {
-        super(x, y);
-        this.radius = radius;
+    constructor(x, y, radius, color) {
+        super(x, y, radius);
+        this.color = color;
     }
-
-    update() {
-        this.x += this.velx;
-        this.y += this.vely;
+    update(dt) {
+        this.x += this.velx * dt;
+        this.y += this.vely * dt;
         app.utils.checkBoundingCollision(this);
     }
-
     draw() {
-        ctx.beginPath();
-        ctx.fillStyle = "#000";
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2);
-        ctx.stroke();
-        ctx.fill();
+        app.utils.fillCircle(this.x, this.y, this.radius, this.color);
     }
 }
