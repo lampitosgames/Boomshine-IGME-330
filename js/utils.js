@@ -1,3 +1,5 @@
+"use strict";
+
 app.utils = {
 	//normalize function (find where the 'value' falls percentage-wise between the min and max)
 	norm: function(value, min, max) {
@@ -51,7 +53,7 @@ app.utils = {
 /**
  * Check for mobile browsers
  */
-app.mobilecheck = function () {
+app.mobile = function () {
     if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
         return true;
     } else {
@@ -62,7 +64,7 @@ app.mobilecheck = function () {
 /**
  * Get a cross-browser viewport object with related size data
  */
-app.viewport = function() {
+app.getViewport = function() {
     var ele = window, pre = 'inner';
     if (!('innerWidth' in window)) {
         pre = 'client';
