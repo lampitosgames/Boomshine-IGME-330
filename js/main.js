@@ -15,6 +15,7 @@ app.main = {
     debug: true,
     paused: false
 };
+//ENUMS
 app.GAME_STATE = {
     BEGIN: 0,
     DEFAULT: 1,
@@ -30,7 +31,6 @@ app.CIRCLE = {
     MAX_RADIUS: 60,
     MIN_RADIUS: 2,
     MAX_LIFETIME: 2.5,
-    //Pixels Per Second
     MAX_SPEED: 500,
     EXPLOSION_SPEED: 90,
     IMPLOSION_SPEED: 120
@@ -40,6 +40,9 @@ app.CIRCLE = {
 let canvas, ctx, viewport;
 let dt;
 let particles, explosions;
+
+//Colors for circles
+let colors = ["#FD5B78", "#FF6037", "#FF9966", "#66FF66", "#50BFE6", "#FF6EFF", "EE34D2"];
 
 /**
  * Initialization
@@ -51,25 +54,21 @@ let init = app.main.init = function() {
     app.main.gameState = app.GAME_STATE.BEGIN;
     app.main.numCircles = app.CIRCLE.NUM_CIRCLES_START;
 
-    //Bind resize, then call it as part of initialization
-    window.addEventListener('resize', resize);
-    resize();
-
-    //Init the mouse
-    app.mouse = [0, 0];
-
-    //Create a new cursor
+    //Create a cursor object
     app.main.cursor = new Cursor(40, "rgba(255, 255, 255, 0.75)", 5);
 
     //Bind the mousedown event to the canvas
     canvas.onmousedown = function() {
+        //Play music
+        app.audio.startBGAudio();
+
         //If the game was paused, unpause but do nothing
         if (app.main.paused) {
             app.main.paused = false;
             app.main.update();
             return;
         }
-        //If the game is already in the exploding state, return early
+        //If the game is already in the exploding state, do nothing
         if (app.main.gameState == app.GAME_STATE.EXPLODING) return;
 
         //If the round is over, start the next round
@@ -77,9 +76,19 @@ let init = app.main.init = function() {
             app.main.reset();
             return;
         }
-        //Default to calling the cursor's click event
+        //Call the cursor's click logic by default
         app.main.cursor.click();
     }
+
+    //Bind keyup for pause/unpause
+    window.addEventListener("keyup", function(e) {
+        var char = String.fromCharCode(e.keyCode);
+        if (char == "p" || char == "P"){ togglePause(!app.main.paused); }
+    })
+
+    //Bind resize, then call it as part of initialization
+    window.addEventListener('resize', resize);
+    resize();
 
     //Reset the level
     reset();
@@ -88,17 +97,80 @@ let init = app.main.init = function() {
 }
 
 /**
+ * Main update loop of the game
+ */
+let update = app.main.update = function() {
+    //Request animation frame.  No need for .bind() since everything is written on a global scope.
+    //I generally dislike relying on the 'this' keyword because it can introduce really nasty
+    //bugs
+    app.main.animationID = requestAnimationFrame(app.main.update);
+
+    //Get the delta time
+    app.dt = dt = calculateDeltaTime();
+
+    //Override everything with a full-size background
+    ctx.fillStyle = "#171717";
+    ctx.fillRect(0, 0, viewport.width, viewport.height);
+
+    //Draw all particles
+    for (var i=0; i<app.main.particles.length; i++) { particles[i].draw(); }
+    //Draw all explosions
+    for (var i=0; i<explosions.length; i++) { explosions[i].draw(dt); }
+    //Draw the game HUD.  This function does its own game state calculations
+    drawHUD();
+
+    //If in debug mode, draw debugger things
+    if (app.main.debug) {
+        //Draw delta time
+        app.utils.fillText("dt: " + dt.toFixed(3), viewport.width - 150, viewport.height - 10, "10pt courier", "white");
+    }
+
+    //Pause check
+    if (app.main.paused) {
+        drawPauseScreen();
+        return;
+    }
+    /* UPDATES DON'T HAPPEN IF GAME IS PAUSED */
+    //Update all particles
+    for (var i=0; i<particles.length; i++) { particles[i].update(dt); }
+    //Update all explosions
+    for (var i=0; i<explosions.length; i++) { explosions[i].update(dt); }
+
+    //If the round is over (exploding has happened and all explosions have finished)
+    if (app.main.gameState == app.GAME_STATE.EXPLODING && explosions.length == 0) {
+        //End the round
+        app.main.gameState = app.GAME_STATE.ROUND_OVER;
+        app.audio.stopBGAudio();
+    }
+    //If the round isn't over and the game isn't exploding, update and draw the cursor
+    if (app.main.gameState != app.GAME_STATE.ROUND_OVER && app.main.gameState != app.GAME_STATE.EXPLODING) {
+        app.main.cursor.update();
+        app.main.cursor.draw();
+    }
+    //CHECK FOR CHEATS
+    if (app.main.gameState == app.GAME_STATE.BEGIN || app.main.gameState == app.GAME_STATE.ROUND_OVER) {
+        //If keys are down
+        if (app.keys.keydown[app.keys.KEYBOARD.KEY_UP] && app.keys.keydown[app.keys.KEYBOARD.KEY_SHIFT]) {
+            app.main.totalScore++;
+            app.audio.playEffect();
+        }
+    }
+}
+
+/**
  * Resets the game and moves to the next level
  */
 let reset = app.main.reset = function() {
-    //Create circles
+    //Increment the number of circles in the level
     app.main.numCircles += app.CIRCLE.INCREMENT;
+    //Determine game state
     app.main.gameState = app.main.gameState == app.GAME_STATE.BEGIN ? app.GAME_STATE.BEGIN : app.GAME_STATE.DEFAULT;
     //Reset the round Score
     app.main.roundScore = 0;
     //Init particles
     particles = app.main.particles = [];
     explosions = app.main.explosions = [];
+    //Create circles
     makeCircles(app.main.numCircles);
 }
 
@@ -116,50 +188,23 @@ let resize = app.main.resize = function() {
 }
 
 /**
- * Main update loop of the game
+ * Sets the pause state based on a boolean.
+ * Plays/pauses audio accordingly
  */
-let update = app.main.update = function() {
-    //Note to grader: I don't need to bind the update function because of the way I'm coding.
-    app.main.animationID = requestAnimationFrame(app.main.update);
-
-    //Get the delta time
-    app.dt = dt = calculateDeltaTime();
-
-    //Override everything with a full-size background
-    ctx.fillStyle = "#171717";
-    ctx.fillRect(0, 0, viewport.width, viewport.height);
-
-    //Draw all particles
-    for (var i=0; i<app.main.particles.length; i++) { particles[i].draw(); }
-    //Draw all explosions
-    for (var i=0; i<explosions.length; i++) { explosions[i].draw(dt); }
-
-    drawHUD();
-
-    //If in debug mode, draw debugger things
-    if (app.main.debug) {
-        //Draw delta time
-        app.utils.fillText("dt: " + dt.toFixed(3), viewport.width - 150, viewport.height - 10, "10pt courier", "white");
+let togglePause = app.main.togglePause = function(value) {
+    app.main.paused = value;
+    if (value) {
+        app.audio.stopBGAudio();
+    } else {
+        app.audio.startBGAudio();
     }
-
-    //UPDATES DON'T HAPPEN IF GAME IS PAUSED
-    if (app.main.paused) {
-        drawPauseScreen();
-        return;
-    }
-    //Update all particles
-    for (var i=0; i<particles.length; i++) { particles[i].update(dt); }
-    //Update all explosions
-    for (var i=0; i<explosions.length; i++) { explosions[i].update(dt); }
-
-    if (app.main.gameState == app.GAME_STATE.EXPLODING && explosions.length == 0) {
-        app.main.gameState = app.GAME_STATE.ROUND_OVER;
-    } else if (app.main.gameState != app.GAME_STATE.ROUND_OVER && app.main.gameState != app.GAME_STATE.EXPLODING) {
-        app.main.cursor.update();
-        app.main.cursor.draw();
-    }
+    cancelAnimationFrame(app.main.animationID);
+    update();
 }
 
+/**
+ * Draws text on the screen based on the game state
+ */
 let drawHUD = app.main.drawHUD = function() {
     ctx.save();
     //Draw score
@@ -185,6 +230,9 @@ let drawHUD = app.main.drawHUD = function() {
     ctx.restore();
 }
 
+/**
+ * Draw the pause text overlay
+ */
 let drawPauseScreen = app.main.drawPauseScreen = function() {
     ctx.save();
     ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
@@ -205,7 +253,7 @@ let makeCircles = app.main.makeCircles = function(count) {
         particles.push(new Circle(app.utils.randomInt(radius*2, viewport.width-radius*2),
                                   app.utils.randomInt(radius*2, viewport.height-radius*2),
                                   radius,
-                                  app.utils.randomRGBOpacity(0.75)
+                                  colors[i % colors.length]
                                  ));
         let circleVec = app.utils.randomVec();
         particles[i].setVel(circleVec[0]*speed, circleVec[1]*speed);

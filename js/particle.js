@@ -48,6 +48,7 @@ class Explosion extends Circle {
         //Increase the round Score
         app.main.roundScore += 1;
         app.main.totalScore += 1;
+        app.audio.playEffect();
     }
     update(dt) {
         //Collide with all active circles
