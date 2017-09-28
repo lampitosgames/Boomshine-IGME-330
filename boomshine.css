@@ -9,3 +9,18 @@
 #audioControls {
     display: none;
 }
+
+#startGame {
+    font-size: 24pt;
+    border-radius: 15px;
+    position: absolute;
+    top: 40vh;
+    left: 46vw;
+    z-index: 1;
+}
+#startGame:hover {
+    background-color: #fff;
+}
+#startGame:focus {
+    outline: 0;
+}

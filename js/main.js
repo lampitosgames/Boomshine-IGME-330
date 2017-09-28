@@ -3,6 +3,7 @@
 app.main = {
     canvas: undefined,
     ctx: undefined,
+    dt: 0,
     lastTime: 0,
     particles: undefined,
     explosions: undefined,
@@ -15,16 +16,17 @@ app.main = {
     debug: true,
     paused: false
 };
+app.viewport = undefined;
 //ENUMS
-app.GAME_STATE = {
+app.GAME_STATE = Object.freeze({
     BEGIN: 0,
     DEFAULT: 1,
     EXPLODING: 2,
     ROUND_OVER: 3,
     REPEAT_LEVEL: 4,
     END: 5
-};
-app.CIRCLE = {
+});
+app.CIRCLE = Object.freeze({
     NUM_CIRCLES_START: 0,
     INCREMENT: 20,
     START_RADIUS: 10,
@@ -34,7 +36,7 @@ app.CIRCLE = {
     MAX_SPEED: 500,
     EXPLOSION_SPEED: 90,
     IMPLOSION_SPEED: 120
-};
+});
 
 //Script local variables (I mean, they're technically global, but globals are all stored in the app object)
 let canvas, ctx, viewport;
@@ -48,6 +50,9 @@ let colors = ["#FD5B78", "#FF6037", "#FF9966", "#66FF66", "#50BFE6", "#FF6EFF", 
  * Initialization
  */
 let init = app.main.init = function() {
+    //Prevent additions to the app at this point
+    //All properties have already been defined
+    Object.seal(app);
     //Store the canvas element
     app.main.canvas = canvas = document.getElementById("canvas");
     //Set initial game state
@@ -59,13 +64,12 @@ let init = app.main.init = function() {
 
     //Bind the mousedown event to the canvas
     canvas.onmousedown = function() {
-        //Play music
-        app.audio.startBGAudio();
+        //Do nothing if the game has not begun
+        if (app.main.gameState == app.GAME_STATE.BEGIN) return;
 
         //If the game was paused, unpause but do nothing
         if (app.main.paused) {
-            app.main.paused = false;
-            app.main.update();
+            togglePause(false);
             return;
         }
         //If the game is already in the exploding state, do nothing
@@ -73,11 +77,25 @@ let init = app.main.init = function() {
 
         //If the round is over, start the next round
         if (app.main.gameState == app.GAME_STATE.ROUND_OVER) {
-            app.main.reset();
+            //Only progress if the user clicks the button
+            let rect = [viewport.width/2 - 300, viewport.height/2 - 25, 600, 50];
+            let mouse = app.mouse;
+            if (mouse[0] >= rect[0] && mouse[0] <= rect[0] + rect[2] && mouse[1] >= rect[1] && mouse[1] <= rect[1] + rect[3]) {
+                app.main.reset();
+            }
             return;
         }
+        //Play music
+        app.audio.startBGAudio();
         //Call the cursor's click logic by default
         app.main.cursor.click();
+    }
+
+    document.getElementById("startGame").onmousedown = function() {
+        app.main.gameState = app.GAME_STATE.DEFAULT;
+        this.style.display = "none";
+        //Play music
+        app.audio.startBGAudio();
     }
 
     //Bind keyup for pause/unpause
@@ -106,7 +124,7 @@ let update = app.main.update = function() {
     app.main.animationID = requestAnimationFrame(app.main.update);
 
     //Get the delta time
-    app.dt = dt = calculateDeltaTime();
+    app.main.dt = dt = calculateDeltaTime();
 
     //Override everything with a full-size background
     ctx.fillStyle = "#171717";
@@ -142,8 +160,8 @@ let update = app.main.update = function() {
         app.main.gameState = app.GAME_STATE.ROUND_OVER;
         app.audio.stopBGAudio();
     }
-    //If the round isn't over and the game isn't exploding, update and draw the cursor
-    if (app.main.gameState != app.GAME_STATE.ROUND_OVER && app.main.gameState != app.GAME_STATE.EXPLODING) {
+    //If the round isn't over, the game isn't just beginning, and the game isn't exploding, update and draw the cursor
+    if (app.main.gameState != app.GAME_STATE.ROUND_OVER && app.main.gameState != app.GAME_STATE.BEGIN && app.main.gameState != app.GAME_STATE.EXPLODING) {
         app.main.cursor.update();
         app.main.cursor.draw();
     }
@@ -213,9 +231,10 @@ let drawHUD = app.main.drawHUD = function() {
 
     //Draw tutorial text
     if (app.main.gameState == app.GAME_STATE.BEGIN) {
+        document.getElementById("startGame").style.display = "inline";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        app.utils.fillText("To begin, click a circle", viewport.width/2, viewport.height/2, "30pt courier", "#fff");
+        app.utils.fillText("Click a circle, watch the reaction!", viewport.width/2, viewport.height/2, "30pt courier", "#fff");
     }
 
     //Draw round over text
@@ -223,9 +242,11 @@ let drawHUD = app.main.drawHUD = function() {
         ctx.save();
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        app.utils.fillText("Round Over", viewport.width/2, viewport.height/2 - 40, "30pt courier", "red");
-        app.utils.fillText("Click to continue", viewport.width/2, viewport.height/2, "30pt courier", "red");
-        app.utils.fillText("Next round there are " + (app.main.numCircles + app.CIRCLE.INCREMENT) + " circles", viewport.width/2, viewport.height/2 + 40, "30pt courier", "white");
+        app.utils.fillText("Round Over", viewport.width/2, viewport.height/2 - 60, "30pt courier", "red");
+        ctx.fillStyle = "yellow";
+        ctx.fillRect(viewport.width/2 - 300, viewport.height/2 - 25, 600, 50);
+        app.utils.fillText("Click here to continue", viewport.width/2, viewport.height/2, "30pt courier", "red");
+        app.utils.fillText("Next round there are " + (app.main.numCircles + app.CIRCLE.INCREMENT) + " circles", viewport.width/2, viewport.height/2 + 60, "30pt courier", "white");
     }
     ctx.restore();
 }
