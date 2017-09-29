@@ -253,7 +253,7 @@ let makeCircles = app.main.makeCircles = function(count) {
         particles.push(new Circle(app.utils.randomInt(radius*2, viewport.width-radius*2),
                                   app.utils.randomInt(radius*2, viewport.height-radius*2),
                                   radius,
-                                  colors[i % colors.length]
+                                  colors[i % (colors.length-1)]
                                  ));
         let circleVec = app.utils.randomVec();
         particles[i].setVel(circleVec[0]*speed, circleVec[1]*speed);
