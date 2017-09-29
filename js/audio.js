@@ -1,5 +1,7 @@
 "use strict";
 
+app = app || {};
+
 //Audio module
 app.audio = (function(){
     let bgAudio = undefined;

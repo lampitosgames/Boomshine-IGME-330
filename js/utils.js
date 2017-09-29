@@ -1,5 +1,7 @@
 "use strict";
 
+app = app || {};
+
 app.utils = {
 	//normalize function (find where the 'value' falls percentage-wise between the min and max)
 	norm: function(value, min, max) {
@@ -113,12 +115,14 @@ app.utils = {
      */
     fillCircle: function(x, y, radius, fillColor) {
         let c = app.main.ctx;
+        c.save();
         c.fillStyle = fillColor;
         c.globalAlpha = 0.75;
         c.beginPath();
         c.arc(x, y, radius, 0, Math.PI*2);
         c.fill();
         c.globalAlpha = 1.0;
+        c.restore();
     },
     /**
      * Stroke a Circle

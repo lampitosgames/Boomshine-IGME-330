@@ -1,5 +1,7 @@
 "use strict";
 
+app = app || {};
+
 class Particle {
     constructor(x, y, radius) {
         this.x = x;
@@ -30,6 +32,9 @@ class Circle extends Particle {
     }
     draw() {
         app.utils.fillCircle(this.x, this.y, this.radius, this.color);
+        if (this.pulsar && !app.main.paused) {
+            this.pulsar.updateAndDraw(app.main.ctx, {x: this.x, y: this.y});
+        }
     }
     explode() {
         //remove this particle from the array

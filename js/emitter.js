@@ -4,6 +4,8 @@
 
 "use strict";
 
+app = app || {};
+
 app.Emitter=function(){
 
 	function Emitter(){
@@ -94,13 +96,13 @@ app.Emitter=function(){
 	function _initParticle(obj, p, emitterPoint){
 
 		// give it a random age when first created
-		p.age = getRandom(0,obj.lifetime);
+		p.age = app.utils.randomRange(0,obj.lifetime);
 
-		p.x = emitterPoint.x + getRandom(-obj.xRange, obj.xRange);
-		p.y = emitterPoint.y + getRandom(0, obj.yRange);
-		p.r = getRandom(obj.startRadius/2, obj.startRadius); // radius
-		p.xSpeed = getRandom(obj.minXspeed, obj.maxXspeed);
-		p.ySpeed = getRandom(obj.minYspeed, obj.maxYspeed);
+		p.x = emitterPoint.x + app.utils.randomRange(-obj.xRange, obj.xRange);
+		p.y = emitterPoint.y + app.utils.randomRange(0, obj.yRange);
+		p.r = app.utils.randomRange(obj.startRadius/2, obj.startRadius); // radius
+		p.xSpeed = app.utils.randomRange(obj.minXspeed, obj.maxXspeed);
+		p.ySpeed = app.utils.randomRange(obj.minYspeed, obj.maxYspeed);
 		return p;
 	};
 

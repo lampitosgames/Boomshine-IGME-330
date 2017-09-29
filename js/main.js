@@ -1,5 +1,7 @@
 "use strict";
 
+app = app || {};
+
 app.main = {
     canvas: undefined,
     ctx: undefined,
@@ -14,7 +16,9 @@ app.main = {
     totalScore: 0,
     animationID: 0,
     debug: true,
-    paused: false
+    paused: false,
+    pulsar: undefined,
+    exhaust: undefined
 };
 app.viewport = undefined;
 //ENUMS
@@ -59,6 +63,13 @@ let init = app.main.init = function() {
     app.main.gameState = app.GAME_STATE.BEGIN;
     app.main.numCircles = app.CIRCLE.NUM_CIRCLES_START;
 
+    //Init exhaust
+    app.main.exhaust = new app.Emitter();
+    app.main.exhaust.numParticles = 100;
+    app.main.exhaust.red = 255;
+    app.main.exhaust.green = 150;
+    app.main.exhaust.createParticles({x: 100, y: 100});
+
     //Create a cursor object
     app.main.cursor = new Cursor(40, "rgba(255, 255, 255, 0.75)", 5);
 
@@ -97,12 +108,6 @@ let init = app.main.init = function() {
         //Play music
         app.audio.startBGAudio();
     }
-
-    //Bind keyup for pause/unpause
-    window.addEventListener("keyup", function(e) {
-        var char = String.fromCharCode(e.keyCode);
-        if (char == "p" || char == "P"){ togglePause(!app.main.paused); }
-    })
 
     //Bind resize, then call it as part of initialization
     window.addEventListener('resize', resize);
@@ -235,6 +240,7 @@ let drawHUD = app.main.drawHUD = function() {
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         app.utils.fillText("Click a circle, watch the reaction!", viewport.width/2, viewport.height/2, "30pt courier", "#fff");
+        app.main.exhaust.updateAndDraw(ctx, {x: 100, y: 100});
     }
 
     //Draw round over text
@@ -278,6 +284,21 @@ let makeCircles = app.main.makeCircles = function(count) {
                                  ));
         let circleVec = app.utils.randomVec();
         particles[i].setVel(circleVec[0]*speed, circleVec[1]*speed);
+        var pulsar = new app.Emitter();
+        pulsar.red = 255;
+        pulsar.green = Math.floor(app.utils.randomInt(0, 255));
+        pulsar.blue = Math.floor(app.utils.randomInt(0, 255));
+        pulsar.minXspeed = pulsar.minYspeed = -0.25;
+        pulsar.maxXspeed = pulsar.minYspeed = 0.25;
+        pulsar.lifetime = 500;
+        pulsar.expansionRate = 0.05;
+        pulsar.numParticles = 100;
+        pulsar.xRange = 1;
+        pulsar.yRange = 1;
+        pulsar.useCircles = false;
+        pulsar.useSquares = true;
+        pulsar.createParticles({x: 540, y: 100});
+        particles[i].pulsar = pulsar;
     }
 }
 

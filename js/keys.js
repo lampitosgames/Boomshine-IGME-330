@@ -1,5 +1,7 @@
 "use strict";
 
+app = app || {};
+
 //Keys module
 app.keys = (function() {
     let keydown = [];
@@ -19,6 +21,9 @@ app.keys = (function() {
 
         window.addEventListener("keyup",function(e){
         	keydown[e.keyCode] = false;
+            var char = String.fromCharCode(e.keyCode);
+            if (char == "p" || char == "P"){ app.main.togglePause(!app.main.paused); }
+            if (char == "d" || char == "D"){ app.main.debug = !app.main.debug; }
         });
     }
 
