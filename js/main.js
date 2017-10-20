@@ -12,7 +12,7 @@ app.main = {
     roundScore: 0,
     totalScore: 0,
     animationID: 0,
-    debug: true,
+    debug: false,
     paused: false
 };
 //ENUMS
@@ -80,12 +80,6 @@ let init = app.main.init = function() {
         app.main.cursor.click();
     }
 
-    //Bind keyup for pause/unpause
-    window.addEventListener("keyup", function(e) {
-        var char = String.fromCharCode(e.keyCode);
-        if (char == "p" || char == "P"){ togglePause(!app.main.paused); }
-    })
-
     //Bind resize, then call it as part of initialization
     window.addEventListener('resize', resize);
     resize();
@@ -138,6 +132,8 @@ let update = app.main.update = function() {
 
     //If the round is over (exploding has happened and all explosions have finished)
     if (app.main.gameState == app.GAME_STATE.EXPLODING && explosions.length == 0) {
+
+        if ()
         //End the round
         app.main.gameState = app.GAME_STATE.ROUND_OVER;
         app.audio.stopBGAudio();
@@ -150,7 +146,7 @@ let update = app.main.update = function() {
     //CHECK FOR CHEATS
     if (app.main.gameState == app.GAME_STATE.BEGIN || app.main.gameState == app.GAME_STATE.ROUND_OVER) {
         //If keys are down
-        if (app.keys.keydown[app.keys.KEYBOARD.KEY_UP] && app.keys.keydown[app.keys.KEYBOARD.KEY_SHIFT]) {
+        if (app.keys.pressed("up") && app.keys.pressed("shift")) {
             app.main.totalScore++;
             app.audio.playEffect();
         }
@@ -200,6 +196,13 @@ let togglePause = app.main.togglePause = function(value) {
     }
     cancelAnimationFrame(app.main.animationID);
     update();
+}
+
+/**
+ * Sets the debug state based on a boolean.
+ */
+let toggleDebug = app.main.toggleDebug = function(value) {
+    app.main.debug = value;
 }
 
 /**
