@@ -48,10 +48,10 @@ app.keys = (function() {
 
         //Bind keyup for pause/unpause
         keyUp("p", function() {
-            app.main.togglePause(!app.main.paused);
+            app.main.togglePause(!app.state.main.paused);
         });
         keyUp("d", function() {
-            app.main.toggleDebug(!app.main.debug);
+            app.main.toggleDebug(!app.state.main.debug);
         });
     }
 

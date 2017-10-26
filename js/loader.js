@@ -8,8 +8,9 @@ window.onload = function() {
     app.mouse = [0, 0];
 
     //Initialize modules
-    app.audio.init();
+    app.time.init();
     app.keys.init();
+    app.audio.init();
 
     //Initialize main
     app.main.init();
