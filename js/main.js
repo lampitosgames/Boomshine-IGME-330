@@ -5,7 +5,7 @@ app.ctx = undefined;
 
 app.main = (function() {
     let a = app;
-    let s, sm, sc, se, st;
+    let s, sm, sc, se, st, sl;
 
     /**
      * Initialization
@@ -17,12 +17,12 @@ app.main = (function() {
         sc = s.colors;
         se = s.e;
         st = s.time;
+        sl = s.levels;
 
         //Store the canvas element
         a.canvas = document.getElementById("canvas");
         //Set initial game state
         sm.gameState = se.BEGIN;
-        sm.numCircles = se.NUM_CIRCLES_START;
 
         //Create a cursor
         sm.cursor = new Cursor(40, "rgba(255, 255, 255, 0.75)", 5);
@@ -48,6 +48,11 @@ app.main = (function() {
         sm.animationID = requestAnimationFrame(update);
 
         //Update the timer
+        if (a.keys.pressed("t")) {
+            sm.dtMultiplier = 6;
+        } else {
+            sm.dtMultiplier = 1;
+        }
         a.time.update();
 
         //Override everything with a full size background
@@ -63,6 +68,7 @@ app.main = (function() {
 
         //If in debug mode, draw debugger things
         if (sm.debug) {
+            a.ctx.textAlign = "left";
             //Draw delta time
             a.utils.fillText("dt: " + a.time.dt().toFixed(3), a.viewport.width - 150, a.viewport.height - 10, "10pt courier", "white");
         }
@@ -80,18 +86,33 @@ app.main = (function() {
 
         //If the round is over (exploding has happened and all explosions have finished)
         if (sm.gameState == se.EXPLODING && sm.explosions.length == 0) {
-            //End this round
-            sm.gameState = se.ROUND_OVER;
+            //If they didn't get enough points, fail the level
+            if (sm.roundScore < sl[sm.currentLevel].targetNum) {
+                sm.gameState = se.REPEAT_LEVEL;
+            //If they aren't repeating the level
+            } else {
+                //End this round
+                sm.gameState = se.ROUND_OVER;
+                //Increase total score
+                sm.totalScore += sm.roundScore;
+            }
+
+            //If they didn't fail the last level and it was the final level, end the game
+            if (sm.gameState != se.REPEAT_LEVEL && sm.currentLevel == sl.length-1) {
+                sm.gameState = se.END;
+            }
+
             //Stop the background song
             a.audio.stopBGAudio();
         }
+
         //If the round isn't over and the game isn't exploding, update and draw the cursor
-        if (sm.gameState != se.ROUND_OVER && sm.gameState != se.EXPLODING) {
+        if (sm.gameState != se.ROUND_OVER && sm.gameState != se.END && sm.gameState != se.REPEAT_LEVEL && sm.gameState != se.EXPLODING) {
             sm.cursor.update();
             sm.cursor.draw();
         }
         //CHECK FOR CHEATS
-        if (sm.gameState == se.BEGIN || sm.gameState == se.ROUND_OVER) {
+        if (sm.gameState == se.BEGIN || sm.gameState == se.ROUND_OVER || sm.gameState == se.REPEAT_LEVEL || sm.gameState == se.END) {
             //If keys are down
             if (a.keys.pressed("up") && a.keys.pressed("shift")) {
                 sm.totalScore++;
@@ -104,10 +125,16 @@ app.main = (function() {
      * Resets the game and moves to the next level
      */
     function reset() {
-        //Increment the number of circles in the level
-        sm.numCircles += se.INCREMENT;
-        //Determine the game state
-        sm.gameState = sm.gameState == se.BEGIN ? se.BEGIN : se.DEFAULT;
+        //Determine game state
+        if (sm.gameState == se.BEGIN) {
+            sm.gameState = se.BEGIN;
+        } else {
+            sm.gameState = se.DEFAULT;
+        }
+        //Increment the current level
+        sm.currentLevel += 1;
+        //Get the number of circles for this level
+        sm.numCircles = sl[sm.currentLevel].numCircles;
         //Reset the round score
         sm.roundScore = 0;
         //Init particles
@@ -148,6 +175,21 @@ app.main = (function() {
         }
         //if the round is over, start the next round
         if (sm.gameState == se.ROUND_OVER) {
+            reset();
+            return;
+        }
+        //If the round is over and it failed, restart the current round
+        if (sm.gameState == se.REPEAT_LEVEL) {
+            sm.currentLevel--;
+            reset();
+            return;
+        }
+        //If the game is over
+        if (sm.gameState == se.END) {
+            //Restart the game
+            sm.currentLevel = -1;
+            sm.gameState = se.BEGIN;
+            sm.totalScore = 0;
             reset();
             return;
         }
@@ -201,24 +243,47 @@ app.main = (function() {
         let c = a.ctx;
         c.save();
         //Draw Score
-        a.utils.fillText("This Round: " + sm.roundScore + " of " + sm.numCircles, 20, 20, "14pt courier", "#dddddd");
+        a.utils.fillText("Level " + (sm.currentLevel+1) + ": " + sm.roundScore + "/" + sl[sm.currentLevel].targetNum + " of " + sm.numCircles, 20, 20, "14pt courier", "#dddddd");
         a.utils.fillText("Total Score: " + sm.totalScore, a.viewport.width - 200, 20, "14pt courier", "#dddddd");
+
+        c.textAlign = "center";
+        c.textBaseline = "middle";
 
         //Draw tutorial text
         if (sm.gameState == se.BEGIN) {
-            c.textAlign = "center";
-            c.textBaseline = "middle";
             a.utils.fillText("To begin, click a circle", a.viewport.width/2, a.viewport.height/2, "30pt courier", "#FFFFFF");
         }
 
         //Draw round over text
         if (sm.gameState == se.ROUND_OVER) {
-            c.textAlign = "center";
-            c.textBaseline = "middle";
-            app.utils.fillText("Round Over", a.viewport.width/2, a.viewport.height/2 - 40, "30pt courier", "red");
-            app.utils.fillText("Click to continue", a.viewport.width/2, a.viewport.height/2, "30pt courier", "red");
-            app.utils.fillText("Next round there are " + (sm.numCircles + se.INCREMENT) + " circles", a.viewport.width/2, a.viewport.height/2 + 40, "30pt courier", "white");
+            a.utils.fillText(sl[sm.currentLevel].winMessage, a.viewport.width/2, a.viewport.height/2 - 40, "30pt courier", "white");
+            a.utils.fillText("Click to continue", a.viewport.width/2, a.viewport.height/2, "30pt courier", "red");
+            a.utils.fillText("Goal next round: " + sl[sm.currentLevel+1].targetNum + " of " + sl[sm.currentLevel+1].numCircles + " circles",
+                               a.viewport.width/2,
+                               a.viewport.height/2 + 40,
+                               "30pt courier", "white"
+                           );
         }
+
+        //Draw round repeat text
+        if (sm.gameState == se.REPEAT_LEVEL) {
+            a.utils.fillText(sl[sm.currentLevel].failMessage, a.viewport.width/2, a.viewport.height/2 - 80, "30pt courier", "white");
+            a.utils.fillText("You missed the goal of " + sl[sm.currentLevel].targetNum + " circles", a.viewport.width/2, a.viewport.height/2 - 40, "30pt courier", "white");
+            a.utils.fillText("Click to continue", a.viewport.width/2, a.viewport.height/2, "30pt courier", "red");
+            a.utils.fillText("Goal: " + sl[sm.currentLevel].targetNum + " of " + sl[sm.currentLevel].numCircles + " circles",
+                               a.viewport.width/2,
+                               a.viewport.height/2 + 40,
+                               "30pt courier", "white"
+                           );
+        }
+
+        //Draw game over text
+        if (sm.gameState == se.END) {
+            a.utils.fillText(sl[sm.currentLevel].winMessage, a.viewport.width/2, a.viewport.height/2 - 70, "60pt courier", "#FFFFFF");
+            a.utils.fillText("Your final score was " + sm.totalScore, a.viewport.width/2, a.viewport.height/2, "30pt courier", "red");
+            a.utils.fillText("Click to play again", a.viewport.width/2, a.viewport.height/2 + 60, "20pt courier", "#FFFFFF");
+        }
+
         c.restore();
     }
 

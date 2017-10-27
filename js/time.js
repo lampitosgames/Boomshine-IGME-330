@@ -44,7 +44,7 @@ app.time = (function() {
         update: update,
         init: init,
         dt: function() {
-            return st.dt;
+            return st.dt * a.state.main.dtMultiplier;
         },
         runTime: function() {
             return st.runTime;

@@ -102,7 +102,6 @@ app.utils = {
     fillText: function(string, x, y, css, color) {
         let c = app.ctx;
         c.save();
-        // https://developer.mozilla.org/en-US/docs/Web/CSS/font
         c.font = css;
         c.fillStyle = color;
         c.fillText(string, x, y);
@@ -115,7 +114,6 @@ app.utils = {
         let c = app.ctx;
         c.save();
         c.fillStyle = fillColor;
-        c.globalAlpha = 0.75;
         c.beginPath();
         c.arc(x, y, radius, 0, Math.PI*2);
         c.fill();

@@ -29,7 +29,14 @@ class Circle extends Particle {
         app.utils.checkBoundingCollision(this);
     }
     draw() {
+        app.ctx.save();
+        if (app.state.main.gameState == app.state.e.BEGIN || app.state.main.gameState == app.state.e.ROUND_OVER || app.state.main.gameState == app.state.e.REPEAT_LEVEL || app.state.main.gameState == app.state.e.END) {
+            app.ctx.globalAlpha = 0.3;
+        } else {
+            app.ctx.globalAlpha = 0.75;
+        }
         app.utils.fillCircle(this.x, this.y, this.radius, this.color);
+        app.ctx.restore();
     }
     explode() {
         //remove this particle from the array
@@ -47,7 +54,6 @@ class Explosion extends Circle {
         this.countdown = app.state.e.MAX_LIFETIME;
         //Increase the round Score
         app.state.main.roundScore += 1;
-        app.state.main.totalScore += 1;
         app.audio.playEffect();
     }
     update(dt) {
@@ -82,7 +88,14 @@ class Explosion extends Circle {
         } else { this.countdown -= dt; }
     }
     draw() {
+        app.ctx.save();
+        if (app.state.main.gameState == app.state.e.BEGIN || app.state.main.gameState == app.state.e.ROUND_OVER || app.state.main.gameState == app.state.e.REPEAT_LEVEL || app.state.main.gameState == app.state.e.END) {
+            app.ctx.globalAlpha = 0.3;
+        } else {
+            app.ctx.globalAlpha = 0.75;
+        }
         app.utils.fillCircle(this.x, this.y, this.radius, this.color);
+        app.ctx.restore();
     }
 }
 
@@ -102,6 +115,9 @@ class Cursor extends Particle {
         app.utils.strokeCircle(this.x, this.y, this.radius, this.color, this.lineWidth)
     }
     click() {
+        if (app.state.main.gameState != app.state.e.DEFAULT) {
+            app.state.main.gameState = app.state.e.DEFAULT;
+        }
         let pList = app.state.main.particles;
         for (var i=0; i<pList.length; i++) {
             let p = pList[i];
